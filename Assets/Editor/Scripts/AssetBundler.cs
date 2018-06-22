@@ -19,8 +19,7 @@ using UnityEngine;
 /// 5. Restores MonoScript references to Assembly-CSharp so they can be found by the Unity Editor again.
 /// 
 /// </summary>
-public class AssetBundler
-{
+public class AssetBundler {
     /// <summary>
     /// Temporary location for building AssetBundles
     /// </summary>
@@ -65,25 +64,21 @@ public class AssetBundler
     #endregion
 
     [MenuItem("Keep Talking ModKit/Build AssetBundle _F6", priority = 10)]
-    public static void BuildAllAssetBundles_WithEditorUtility()
-    {
+    public static void BuildAllAssetBundles_WithEditorUtility() {
         BuildModBundle(false);
     }
 
     [MenuItem("Keep Talking ModKit/Build AssetBundle (with MSBuild)", priority = 11)]
-    public static void BuildAllAssetBundles_MSBuild()
-    {
+    public static void BuildAllAssetBundles_MSBuild() {
         BuildModBundle(true);
     }
 
-    protected static void BuildModBundle(bool useMSBuild)
-    {
+    protected static void BuildModBundle(bool useMSBuild) {
         Debug.LogFormat("Creating \"{0}\" AssetBundle...", BUNDLE_FILENAME);
 
-        if (ModConfig.Instance == null 
+        if (ModConfig.Instance == null
             || ModConfig.ID == ""
-            || ModConfig.OutputFolder == "")
-        {
+            || ModConfig.OutputFolder == "") {
             Debug.LogError("You must configure your mod from the \"Keep Talking ModKit / Configure Mod\" menu first.");
             return;
         }
@@ -95,8 +90,7 @@ public class AssetBundler
 
         bool success = false;
 
-        try
-        {
+        try {
             bundler.WarnIfExampleAssetsAreIncluded();
             bundler.WarnIfAssetsAreNotTagged();
             bundler.CheckForAssets();
@@ -111,12 +105,9 @@ public class AssetBundler
             bundler.UpdateMaterialInfo();
 
             //Build the assembly using either MSBuild or Unity EditorUtility methods
-            if (useMSBuild)
-            {
+            if (useMSBuild) {
                 bundler.CompileAssemblyWithMSBuild();
-            }
-            else
-            {
+            } else {
                 bundler.CompileAssemblyWithEditor();
             }
 
@@ -136,19 +127,14 @@ public class AssetBundler
             bundler.CreateAssetBundle();
 
             success = true;
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             Debug.LogErrorFormat("Failed to build AssetBundle: {0}\n{1}", e.Message, e.StackTrace);
-        }
-        finally
-        {
+        } finally {
             //Restore script references to Assembly-CSharp, as expected by the Unity Editor
             bundler.RestoreMonoScripts();
         }
 
-        if (success)
-        {
+        if (success) {
             Debug.LogFormat("{0} Build complete! Output: {1}", System.DateTime.Now.ToLocalTime(), bundler.outputFolder);
         }
     }
@@ -156,12 +142,10 @@ public class AssetBundler
     /// <summary>
     /// Delete and recreate the OUTPUT_FOLDER to ensure a clean build.
     /// </summary>
-    protected void CleanBuildFolder()
-    {
+    protected void CleanBuildFolder() {
         Debug.LogFormat("Cleaning {0}...", outputFolder);
 
-        if (Directory.Exists(outputFolder))
-        {
+        if (Directory.Exists(outputFolder)) {
             Directory.Delete(outputFolder, true);
         }
 
@@ -171,26 +155,23 @@ public class AssetBundler
     /// <summary>
     /// Build the ASSEMBLY_NAME.dll from the project's scripts using MSBuild.
     /// </summary>
-    void CompileAssemblyWithMSBuild()
-    {
+    void CompileAssemblyWithMSBuild() {
         Debug.Log("Compiling scripts with MSBuild...");
 
         IEnumerable<string> scriptAssetPaths = AssetDatabase.GetAllAssetPaths().Where(assetPath => assetPath.EndsWith(".cs") && IsIncludedAssetPath(assetPath));
 
-        if (scriptAssetPaths.Count() == 0)
-        {
+        if (scriptAssetPaths.Count() == 0) {
             Debug.LogFormat("No scripts found to compile.");
             return;
         }
 
-        if (!File.Exists(MSBUILD_PATH))
-        {
+        if (!File.Exists(MSBUILD_PATH)) {
             throw new Exception("MSBUILD_PATH not set to your MSBuild.exe");
         }
 
         //modify the csproj (if needed)
         var csproj = File.ReadAllText("ktanemodkit.CSharp.csproj");
-        csproj = csproj.Replace("<AssemblyName>Assembly-CSharp</AssemblyName>", "<AssemblyName>"+ assemblyName + "</AssemblyName>");
+        csproj = csproj.Replace("<AssemblyName>Assembly-CSharp</AssemblyName>", "<AssemblyName>" + assemblyName + "</AssemblyName>");
         File.WriteAllText("modkithelper.CSharp.csproj", csproj);
 
         string path = "modkithelper.CSharp.csproj";
@@ -212,21 +193,18 @@ public class AssetBundler
     /// <summary>
     /// Build the ASSEMBLY_NAME.dll from the project's scripts using EditorUtility.CompileCSharp().
     /// </summary>
-    void CompileAssemblyWithEditor()
-    {
+    void CompileAssemblyWithEditor() {
         Debug.Log("Compiling scripts with EditorUtility.CompileCSharp...");
         IEnumerable<string> scriptAssetPaths = AssetDatabase.GetAllAssetPaths().Where(assetPath => assetPath.EndsWith(".cs") && IsIncludedAssetPath(assetPath));
 
-        if (scriptAssetPaths.Count() == 0)
-        {
+        if (scriptAssetPaths.Count() == 0) {
             Debug.LogFormat("No scripts found to compile.");
             return;
         }
 
         string playerDefines = PlayerSettings.GetScriptingDefineSymbolsForGroup(BuildTargetGroup.Standalone);
 
-        if (playerDefines.Length > 0 && !playerDefines.EndsWith(";"))
-        {
+        if (playerDefines.Length > 0 && !playerDefines.EndsWith(";")) {
             playerDefines += ";";
         }
 
@@ -239,8 +217,7 @@ public class AssetBundler
             .ToList();
 
         string unityAssembliesLocation;
-        switch (System.Environment.OSVersion.Platform)
-        {
+        switch (System.Environment.OSVersion.Platform) {
             case PlatformID.MacOSX:
             case PlatformID.Unix:
                 unityAssembliesLocation = EditorApplication.applicationPath.Replace("Unity.app", "Unity.app/Contents/Managed/");
@@ -277,12 +254,11 @@ public class AssetBundler
 
         //CompilerMessage
         var compilerMessageType = assembly.GetType("UnityEditor.Scripting.Compilers.CompilerMessage");
-        FieldInfo messageField = compilerMessageType.GetField("message"); 
+        FieldInfo messageField = compilerMessageType.GetField("message");
 
         //Start compiling
         beginCompilingMethod.Invoke(monoCompiler, null);
-        while (!(bool)pollMethod.Invoke(monoCompiler, null))
-        {
+        while (!(bool)pollMethod.Invoke(monoCompiler, null)) {
             System.Threading.Thread.Sleep(50);
         }
 
@@ -290,14 +266,12 @@ public class AssetBundler
         object returnedObj = getMessagesMethod.Invoke(monoCompiler, null);
         object[] cmArray = ((Array)returnedObj).Cast<object>().ToArray();
 
-        foreach (object cm in cmArray)
-        {
+        foreach (object cm in cmArray) {
             string str = (string)messageField.GetValue(cm);
             Debug.LogFormat("Compiler: {0}", str);
         }
 
-        if (!File.Exists(outputFilename))
-        {
+        if (!File.Exists(outputFilename)) {
             throw new Exception("Compilation failed!");
         }
 
@@ -310,20 +284,17 @@ public class AssetBundler
     /// <summary>
     /// Change all non-Editor MonoScripts to reference the ASSEMBLY_NAME assembly, rather than the default Assembly-CSharp.
     /// </summary>
-    protected void AdjustMonoScripts()
-    {
+    protected void AdjustMonoScripts() {
         Debug.Log("Adjusting scripts...");
 
         IEnumerable<string> assetFolderPaths = AssetDatabase.GetAllAssetPaths().Where(path => path.EndsWith(".cs") && IsIncludedAssetPath(path));
 
         scriptPathsToRestore = new List<string>();
 
-        foreach (var path in assetFolderPaths)
-        {
+        foreach (var path in assetFolderPaths) {
             MonoScript script = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
 
-            if (script != null)
-            {
+            if (script != null) {
                 scriptPathsToRestore.Add(path);
                 ChangeMonoScriptAssembly(script, assemblyName);
             }
@@ -333,16 +304,13 @@ public class AssetBundler
     /// <summary>
     /// Restore the MonoScript references to point to Assembly-CSharp, which is expected by the Unity Editor.
     /// </summary>
-    protected void RestoreMonoScripts()
-    {
+    protected void RestoreMonoScripts() {
         Debug.Log("Restoring scripts...");
 
-        foreach (var path in scriptPathsToRestore)
-        {
+        foreach (var path in scriptPathsToRestore) {
             MonoScript script = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
 
-            if (script != null)
-            {
+            if (script != null) {
                 RestoreMonoScriptAssembly(script);
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
             }
@@ -362,8 +330,7 @@ public class AssetBundler
     /// </summary>
     /// <param name="script"></param>
     /// <param name="assemblyName"></param>
-    protected void ChangeMonoScriptAssembly(MonoScript script, string assemblyName)
-    {
+    protected void ChangeMonoScriptAssembly(MonoScript script, string assemblyName) {
         //MonoScript
         //internal extern void Init(string scriptContents, string className, string nameSpace, string assemblyName, bool isEditorScript);
         MethodInfo dynMethod = script.GetType().GetMethod("Init", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -371,28 +338,23 @@ public class AssetBundler
         Debug.LogFormat("Changed {0} assembly to {1}", script.name, assemblyName);
     }
 
-    protected void RestoreMonoScriptAssembly(MonoScript script)
-    {
+    protected void RestoreMonoScriptAssembly(MonoScript script) {
         ChangeMonoScriptAssembly(script, "Assembly-CSharp");
     }
 
     /// <summary>
     /// Copy all managed non-Editor assemblies to the OUTPUT_FOLDER for inclusion alongside the mod bundle.
     /// </summary>
-    protected void CopyManagedAssemblies()
-    {
+    protected void CopyManagedAssemblies() {
         IEnumerable<string> assetPaths = AssetDatabase.GetAllAssetPaths().Where(path => path.EndsWith(".dll") && path.StartsWith("Assets/Plugins"));
 
         //Now find any other managed plugins that should be included, other than the EXCLUDED_ASSEMBLIES list
-        foreach (string assetPath in assetPaths)
-        {
+        foreach (string assetPath in assetPaths) {
             var pluginImporter = AssetImporter.GetAtPath(assetPath) as PluginImporter;
 
-            if (pluginImporter != null && !pluginImporter.isNativePlugin && pluginImporter.GetCompatibleWithAnyPlatform())
-            {
+            if (pluginImporter != null && !pluginImporter.isNativePlugin && pluginImporter.GetCompatibleWithAnyPlatform()) {
                 string assetName = Path.GetFileName(assetPath);
-                if (!EXCLUDED_ASSEMBLIES.Contains(assetName))
-                {
+                if (!EXCLUDED_ASSEMBLIES.Contains(assetName)) {
                     string dest = Path.Combine(outputFolder, Path.GetFileName(assetPath));
 
                     Debug.LogFormat("Copying {0} to {1}", assetPath, dest);
@@ -406,13 +368,11 @@ public class AssetBundler
     /// <summary>
     /// Build the AssetBundle itself and copy it to the OUTPUT_FOLDER.
     /// </summary>
-    protected void CreateAssetBundle()
-    {
+    protected void CreateAssetBundle() {
         Debug.Log("Building AssetBundle...");
 
         //Build all AssetBundles to the TEMP_BUILD_FOLDER
-        if (!Directory.Exists(TEMP_BUILD_FOLDER))
-        {
+        if (!Directory.Exists(TEMP_BUILD_FOLDER)) {
             Directory.CreateDirectory(TEMP_BUILD_FOLDER);
         }
 
@@ -421,8 +381,8 @@ public class AssetBundler
         //not be accessible within the asset bundle. Unity has deprecated this flag claiming it is now always active, but due to a bug
         //we must still include it (and ignore the warning).
         BuildPipeline.BuildAssetBundles(
-            TEMP_BUILD_FOLDER, 
-            BuildAssetBundleOptions.DeterministicAssetBundle | BuildAssetBundleOptions.CollectDependencies, 
+            TEMP_BUILD_FOLDER,
+            BuildAssetBundleOptions.DeterministicAssetBundle | BuildAssetBundleOptions.CollectDependencies,
             BuildTarget.StandaloneWindows);
 #pragma warning restore 618
 
@@ -436,20 +396,16 @@ public class AssetBundler
     /// <summary>
     /// Creates a modInfo.json file and puts it in the OUTPUT_FOLDER.
     /// </summary>
-    protected void CreateModInfo()
-    {
+    protected void CreateModInfo() {
         File.WriteAllText(outputFolder + "/modInfo.json", ModConfig.Instance.ToJson());
 
-        if(ModConfig.PreviewImage != null)
-        {
+        if (ModConfig.PreviewImage != null) {
             string previewImageAssetPath = AssetDatabase.GetAssetPath(ModConfig.PreviewImage);
 
-            if (!string.IsNullOrEmpty(previewImageAssetPath))
-            {
+            if (!string.IsNullOrEmpty(previewImageAssetPath)) {
                 TextureImporter importer = AssetImporter.GetAtPath(previewImageAssetPath) as TextureImporter;
 
-                if (!importer.isReadable || importer.textureCompression != TextureImporterCompression.Uncompressed)
-                {
+                if (!importer.isReadable || importer.textureCompression != TextureImporterCompression.Uncompressed) {
                     importer.isReadable = true;
                     importer.textureCompression = TextureImporterCompression.Uncompressed;
                     importer.SaveAndReimport();
@@ -464,20 +420,16 @@ public class AssetBundler
     /// <summary>
     /// Copies the modSettings.json file from Assets to the OUTPUT_FOLDER.
     /// </summary>
-    protected void CopyModSettings()
-    {
-        if(File.Exists("Assets/modSettings.json"))
-        {
+    protected void CopyModSettings() {
+        if (File.Exists("Assets/modSettings.json")) {
             File.Copy("Assets/modSettings.json", outputFolder + "/modSettings.json");
         }
     }
     /// <summary>
     /// Copies PDF manual pages to Manual folder in OUTPUT_FOLDER to be used for manual combination
     /// </summary>
-    protected void CopyManual()
-    {
-        if(Directory.Exists("Manual/pdfs"))
-        {
+    protected void CopyManual() {
+        if (Directory.Exists("Manual/pdfs")) {
             DirectoryCopyPDFs("Manual/pdfs", outputFolder + "/Manual", true);
         }
     }
@@ -485,13 +437,11 @@ public class AssetBundler
     /// <summary>
     /// Helper method to copy directory
     /// </summary>
-    private static void DirectoryCopyPDFs(string sourceDirName, string destDirName, bool copySubDirs)
-    {
+    private static void DirectoryCopyPDFs(string sourceDirName, string destDirName, bool copySubDirs) {
         // Get the subdirectories for the specified directory.
         DirectoryInfo dir = new DirectoryInfo(sourceDirName);
 
-        if (!dir.Exists)
-        {
+        if (!dir.Exists) {
             throw new DirectoryNotFoundException(
                 "Source directory does not exist or could not be found: "
                 + sourceDirName);
@@ -499,28 +449,23 @@ public class AssetBundler
 
         DirectoryInfo[] dirs = dir.GetDirectories();
         // If the destination directory doesn't exist, create it.
-        if (!Directory.Exists(destDirName))
-        {
+        if (!Directory.Exists(destDirName)) {
             Directory.CreateDirectory(destDirName);
         }
 
         // Get the files in the directory and copy them to the new location.
         FileInfo[] files = dir.GetFiles();
-        foreach (FileInfo file in files)
-        {
+        foreach (FileInfo file in files) {
             string temppath = Path.Combine(destDirName, file.Name);
-            if(file.Extension.ToLower() == ".pdf")
-            {
+            if (file.Extension.ToLower() == ".pdf") {
                 file.CopyTo(temppath, false);
             }
-            
+
         }
 
         // If copying subdirectories, copy them and their contents to new location.
-        if (copySubDirs)
-        {
-            foreach (DirectoryInfo subdir in dirs)
-            {
+        if (copySubDirs) {
+            foreach (DirectoryInfo subdir in dirs) {
                 string temppath = Path.Combine(destDirName, subdir.Name);
                 DirectoryCopyPDFs(subdir.FullName, temppath, copySubDirs);
             }
@@ -532,17 +477,14 @@ public class AssetBundler
     /// All assets tagged with "mod.bundle" will be included in the build, including the Example assets. Print out a 
     /// warning to notify mod authors that they may wish to delete the examples.
     /// </summary>
-    protected void WarnIfExampleAssetsAreIncluded()
-    {
+    protected void WarnIfExampleAssetsAreIncluded() {
         string examplesFolder = "Assets/Examples";
 
-        if (Directory.Exists(examplesFolder))
-        {
+        if (Directory.Exists(examplesFolder)) {
             int numAssetsInBundle = AssetDatabase.FindAssets("b:" + BUNDLE_FILENAME).Length;
             int numExampleAssetsInBundle = AssetDatabase.FindAssets("b:" + BUNDLE_FILENAME, new string[] { examplesFolder }).Length;
 
-            if ((numExampleAssetsInBundle > 0) && (numAssetsInBundle > numExampleAssetsInBundle))
-            {
+            if ((numExampleAssetsInBundle > 0) && (numAssetsInBundle > numExampleAssetsInBundle)) {
                 Debug.LogWarningFormat("AssetBundle includes {0} assets under Examples/ tagged with \"mod.bundle\". These will be included in you bundle unless you untag or delete them.", numExampleAssetsInBundle);
             }
         }
@@ -551,19 +493,15 @@ public class AssetBundler
     /// <summary>
     /// Print a warning for all non-Example assets that are not currently tagged to be in this AssetBundle.
     /// </summary>
-    protected void WarnIfAssetsAreNotTagged()
-    {
+    protected void WarnIfAssetsAreNotTagged() {
         string[] assetGUIDs = AssetDatabase.FindAssets("t:prefab,t:audioclip");
 
-        foreach (var assetGUID in assetGUIDs)
-        {
+        foreach (var assetGUID in assetGUIDs) {
             string path = AssetDatabase.GUIDToAssetPath(assetGUID);
 
-            if (!path.StartsWith("Assets/Examples") && IsIncludedAssetPath(path))
-            {
+            if (!path.StartsWith("Assets/Examples") && IsIncludedAssetPath(path)) {
                 var importer = AssetImporter.GetAtPath(path);
-                if (!importer.assetBundleName.Equals(BUNDLE_FILENAME))
-                {
+                if (!importer.assetBundleName.Equals(BUNDLE_FILENAME)) {
                     Debug.LogWarningFormat("Asset \"{0}\" is not tagged for {1} and will not be included in the AssetBundle!", path, BUNDLE_FILENAME);
                 }
             }
@@ -574,22 +512,17 @@ public class AssetBundler
     /// <summary>
     /// Verify that there is at least one thing to be included in the asset bundle.
     /// </summary>
-    protected void CheckForAssets()
-    {
+    protected void CheckForAssets() {
         string[] assetsInBundle = AssetDatabase.FindAssets(string.Format("t:prefab,t:audioclip,t:scriptableobject,b:", BUNDLE_FILENAME));
-        if (assetsInBundle.Length == 0)
-        {
+        if (assetsInBundle.Length == 0) {
             throw new Exception(string.Format("No assets have been tagged for inclusion in the {0} AssetBundle.", BUNDLE_FILENAME));
         }
     }
 
     /// <returns>true if the given path does not start with any of the paths in EXCLUDED_FOLDERS</returns>
-    protected bool IsIncludedAssetPath(string path)
-    {
-        foreach (string excludedPath in EXCLUDED_FOLDERS)
-        {
-            if (path.StartsWith(excludedPath))
-            {
+    protected bool IsIncludedAssetPath(string path) {
+        foreach (string excludedPath in EXCLUDED_FOLDERS) {
+            if (path.StartsWith(excludedPath)) {
                 return false;
             }
         }
@@ -600,8 +533,7 @@ public class AssetBundler
     /// <summary>
     /// Sets material info for gameobjects that have a material to prevent possible future incompatibility
     /// </summary>
-    protected void UpdateMaterialInfo()
-    {
+    protected void UpdateMaterialInfo() {
         List<string> supportedShaders = new List<string>
             {
                 "Legacy Shaders/Diffuse", "Hidden/CubeBlur", "Hidden/CubeCopy", "Hidden/CubeBlend",
@@ -613,32 +545,24 @@ public class AssetBundler
             };
 
         string[] prefabsGUIDs = AssetDatabase.FindAssets("t: prefab");
-        foreach(string prefabGUID in prefabsGUIDs)
-        {
+        foreach (string prefabGUID in prefabsGUIDs) {
             string path = AssetDatabase.GUIDToAssetPath(prefabGUID);
             GameObject go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if(go == null)
-            {
+            if (go == null) {
                 continue;
             }
-            foreach(Renderer renderer in go.GetComponentsInChildren<Renderer>())
-            {
-                if(renderer.sharedMaterials != null && renderer.sharedMaterials.Length > 0)
-                {
-                    if(renderer.gameObject.GetComponent<KMMaterialInfo>() == null)
-                    {
+            foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>()) {
+                if (renderer.sharedMaterials != null && renderer.sharedMaterials.Length > 0) {
+                    if (renderer.gameObject.GetComponent<KMMaterialInfo>() == null) {
                         renderer.gameObject.AddComponent<KMMaterialInfo>();
                     }
                     KMMaterialInfo materialInfo = renderer.gameObject.GetComponent<KMMaterialInfo>();
                     materialInfo.ShaderNames = new List<string>();
-                    foreach(Material material in renderer.sharedMaterials)
-                    {
-                        if (material == null)
-                        {
+                    foreach (Material material in renderer.sharedMaterials) {
+                        if (material == null) {
                             var obj = renderer.transform;
                             var str = new List<string>();
-                            while (obj != null)
-                            {
+                            while (obj != null) {
                                 str.Add(obj.gameObject.name);
                                 obj = obj.parent;
                             }
@@ -646,12 +570,9 @@ public class AssetBundler
                         }
                         materialInfo.ShaderNames.Add(material.shader.name);
 
-                        if(material.shader.name == "Standard")
-                        {
+                        if (material.shader.name == "Standard") {
                             Debug.LogWarning(string.Format("Use of Standard shader in object {0}. Standard shader should be avoided as it will cause your mod to break in future versions of the game.", renderer.gameObject));
-                        }
-                        else if(!supportedShaders.Contains(material.shader.name))
-                        {
+                        } else if (!supportedShaders.Contains(material.shader.name)) {
                             Debug.LogWarning(string.Format("Use of custom shader {0} in object {1}. Use of custom shaders will break mod compatibility on game update requiring rebuild. Recommend using only supported shaders.", material.shader.name, renderer.gameObject));
                         }
                     }
